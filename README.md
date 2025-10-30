@@ -1,6 +1,6 @@
 # CS329X HW3: Building and Evaluating Human-AI Interaction
 
-**Due 11/19/25 11:59PM PT**
+**Due 11/13/25 11:59PM PT**
 
 75 points total + 10 points extra credit
 
