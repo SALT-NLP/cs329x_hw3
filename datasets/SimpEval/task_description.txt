@@ -1,0 +1,1 @@
+Given a complicated original sentence, simplify it in a way such that a broader audience could easily understand it.
