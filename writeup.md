@@ -5,46 +5,30 @@
 **SUNet ID:** [Your ID]
 
 
-## CoGym (25 points)
+## Collecting Human-Agent Collaboration Traces (X points) <!-- TODO(staff): set points -->
 
-### Question 1.1 (15 points)
+### Question 1.1 (X points)
 
-Produce 3 travel plans with cogym!  Please be creative and create travel plans that are actually interesting to you or have interesting constraints (budget, activities, multi-city, etc.)
+Write down the two planning queries you worked on with Coco, the session ids you exported to `traces/coco_traces.json`, and a short description of how each collaboration went (2-3 sentences each).
 
-#### Travel Plan One
+#### Session One
 
-```
-[PASTE YOUR FIRST COGYM TRAVEL PLAN HERE]
-```
+**Query:** [YOUR FIRST QUERY]
 
-#### Travel Plan Two
+**Session id:** [SESSION ID]
 
 ```
-[PASTE YOUR SECOND COGYM TRAVEL PLAN HERE]
+[HOW DID THE COLLABORATION GO?]
 ```
 
-#### Travel Plan Three
+#### Session Two
+
+**Query:** [YOUR SECOND QUERY]
+
+**Session id:** [SESSION ID]
 
 ```
-[PASTE YOUR THIRD COGYM TRAVEL PLAN HERE]
-```
-
-### Question 1.2 (5 points)
-
-Evaluate these travel plans.  Which one is the best?  Which was the worst?  Score each on quality from (1-5) using your own criteria. (We are looking for a score of 1-5 for each travel plan).
-
-**Travel Plan One Score:** X/5
-
-**Travel Plan Two Score:** X/5
-
-**Travel Plan Three Score:** X/5
-
-### Question 1.3 (5 points)
-
-Explain what criteria you were using when doing this evaluation.  What mattered?  (2-3 sentences).
-
-```
-[WRITE YOUR 2-3 sentence explanation of what evaluation criteria mattered to you here.]
+[HOW DID THE COLLABORATION GO?]
 ```
 
 ## Building Automatic Evaluators to Approximate Human Judgement (50 points + 10 extra credit)

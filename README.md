@@ -6,8 +6,8 @@
 
 ## Overview
 
-In this assignment, you will implement methods from two recent papers which focus on builing or evaluating human-ai interaction:
-1. **CoGym** - a framework for building and evaluating collaborative agents that take initiative at the correct time and work together with humans in parallel.
+In this assignment, you will build on recent work on building and evaluating human-ai interaction:
+1. **Coco** - an open-source collaborative agent that you will use to collect your own human-agent collaboration traces.
 2. **AutoMetrics** - a library for generating automatic evaluators to approximate human-judgements
 
 
@@ -22,6 +22,7 @@ This assignment will require that you use your **Google Cloud Credits**.  We est
 
   - **`hw3.ipynb`** - Main Jupyter notebook containing the complete assignment workflow. This is where you'll implement most of your code and run experiments.
   - **`writeup.md`** - Template for your written responses and analysis. You must fill this out with your answers.
+  - **`export_coco_traces.py`** - script to export your Coco chat sessions to `traces/coco_traces.json`.
 
 ### Environment
 
@@ -35,9 +36,11 @@ This assignment will require that you use your **Google Cloud Credits**.  We est
 
 ## Environment Setup
 
-1. Install required packages (we suggest you install them in Conda environment):
+1. Create a virtual environment with [uv](https://docs.astral.sh/uv/) and install the required packages:
    ```bash
-   pip install -r requirements.txt
+   uv venv --python 3.12
+   source .venv/bin/activate  # Windows: .venv\Scripts\activate
+   uv pip install -r requirements.txt
    ```
 
 2. Copy `.env.example` to `.env` and fill in the API keys.
@@ -53,6 +56,7 @@ You must submit a **ZIP file** containing:
 1. **All code files** including:
    - `hw3.ipynb` (with all cells executed and outputs visible)
    - `submission.py` for submitting to the leaderboard
+   - `traces/coco_traces.json` with the collaboration traces you collected in Part 1
    - `.env` so that we can run your submission on our private test set
 
 2. **Completed writeup**:
