@@ -51,7 +51,7 @@ Explain what criteria you were using when doing this evaluation.  What mattered?
 
 ### Question 2.1 (10 points)
 
-Copy and paste your prompt and Pearson correlation here.
+Copy and paste your HelpSteer2 prompt and Pearson correlation here.
 
 ```
 [PASTE YOUR PROMPT HERE]
@@ -78,10 +78,6 @@ def generate_criteria(train_df, human_criteria="Unknown", seed=42) -> list[str]:
 Paste the criteria you generated for each dataset here.
 
 ```
-[CoGym Evaluation Criteria]
-```
-
-```
 [HelpSteer2 Evaluation Criteria]
 ```
 
@@ -104,7 +100,7 @@ def regress_criteria(train_df, criteria_list) -> Tuple[List[float], float]:
     # TODO: PASTE YOUR IMPLEMENTATION HERE
 ```
 
-And your Pearson Correlation on CoGym
+And your Pearson Correlation on HelpSteer2
 
 Pearson correlation: X.XXX ± X.XXX
 
@@ -116,17 +112,16 @@ Paste your implementation of `generate_evaluator` here.
 # Given a train_df and human_criteria, generate an automatic evaluator that can be used to score a model's output
 # Inputs:
 #   train_df: a dataframe of training examples with input, output, and score columns
-#   human_criteria: a string of the human criteria for the task (e.g. "travel plan quality", "helpfulness", "simplification quality")
+#   human_criteria: a string of the human criteria for the task (e.g. "helpfulness", "simplification quality")
 # Outputs:
 #   A callable function that takes an input and output and returns a score
 def generate_evaluator(train_df, human_criteria="Unknown") -> Callable[[str, str], float]:
     # TODO: Replace this implementation with your code here!  This implements the generation + regression method from above
 ```
 
-Paste your results on CoGym, Helpsteer2, and SimpEval below.
+Paste your results on HelpSteer2 and SimpEval below.
 
 ```
-[Cogym] Pearson correlation:  X.XXX ± X.XXX
 [HelpSteer2] Pearson correlation:  X.XXX ± X.XXX
 [SimpEval] Pearson correlation:  X.XXX ± X.XXX
 Average Pearson correlation:  X.XXX
