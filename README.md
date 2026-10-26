@@ -7,7 +7,7 @@
 ## Overview
 
 In this assignment, you will build on recent work on building and evaluating human-ai interaction:
-1. **Coco** - an open-source collaborative agent that you will use to collect your own human-agent collaboration traces.
+1. **Coco**, an open-source collaborative agent that runs as a desktop app. For the assignment, we create a fork in [mini-collaborative-agent](https://github.com/shaoyijia/mini-collaborative-agent) to have a minimal version that is small enough to read end to end. You will use it to collect your own human-agent collaboration traces.
 2. **AutoMetrics** - a library for generating automatic evaluators to approximate human-judgements
 
 
@@ -71,7 +71,6 @@ You must submit a **ZIP file** containing:
 For submitting to the **gradescope leaderboard** you may find `submit.sh` useful for zipping your files for submission.  For **canvas upload** please be additionally sure to convert `writeup.md` to a PDF file.
 
 **This is the first homework that will involve gradescope submission, so please be careful to remember to upload to BOTH gradescope and canvas**.
-
 
 ### Take the Timed Quiz
 
