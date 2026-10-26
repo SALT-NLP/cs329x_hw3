@@ -25,6 +25,10 @@ This assignment uses the Inkling models through **Tinker** (for Coco and for the
   - **`export_coco_traces.py`** - script to export your Coco chat sessions to `traces/coco_traces.json` (and your simulated sessions to `traces/simulated_traces.json`).
   - **`simulate_turns.py`** - script that simulates your turns with Persimmon while you collaborate with Coco in Part 1.
 
+### Reference
+
+  - **`docs/Persimmon_API_101_2026-10-14.pdf`** - Persimmon API 101 guide from humans&: what Persimmon was trained on and how to write profiles (personas) and settings. Read it before Question 1.2.
+
 ### Environment
 
   - **`.env.example`** - example of how you need to structure your `.env` file
@@ -67,6 +71,15 @@ You must submit a **ZIP file** containing:
 For submitting to the **gradescope leaderboard** you may find `submit.sh` useful for zipping your files for submission.  For **canvas upload** please be additionally sure to convert `writeup.md` to a PDF file.
 
 **This is the first homework that will involve gradescope submission, so please be careful to remember to upload to BOTH gradescope and canvas**.
+
+
+### Take the Timed Quiz
+
+After completing the assignment, you will take a short, timed quiz designed to assess your understanding of the concepts and implementation details covered in the homework. The quiz is open-handout: you may refer to this homework handout while taking it, so we recommend keeping it readily accessible.
+
+The quiz must be completed independently, in one sitting, and without the use of AI tools (e.g., ChatGPT, Claude, Gemini, or other AI assistants). You will have one attempt, and each question will have its own 1-minute time limit.
+
+Take the HW3 Quiz: https://stanforduniversity.qualtrics.com/jfe/form/SV_ahPE3O9RiXluzWe
 
 ## Important Notes
 
