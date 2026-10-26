@@ -31,6 +31,44 @@ Write down the two planning queries you worked on with Coco, the session ids you
 [HOW DID THE COLLABORATION GO?]
 ```
 
+### Question 1.2 (X points)
+
+#### First Persona
+
+```
+[PASTE YOUR FIRST PERSONA HERE]
+```
+
+#### Final Persona
+
+```
+[PASTE YOUR FINAL PERSONA HERE]
+```
+
+#### Comparison
+
+For three turns of your choice, paste Coco's previous message (you can truncate it), your real message, and Persimmon's prediction under your final persona.
+
+```
+[TURN 1: Coco / You (real) / Persimmon]
+```
+
+```
+[TURN 2: Coco / You (real) / Persimmon]
+```
+
+```
+[TURN 3: Coco / You (real) / Persimmon]
+```
+
+#### Reflection
+
+What did you change between persona versions and why? In what ways does the simulated user still differ from you? (4-6 sentences)
+
+```
+[WRITE YOUR REFLECTION HERE]
+```
+
 ## Building Automatic Evaluators to Approximate Human Judgement (50 points + 10 extra credit)
 
 ### Question 2.1 (10 points)

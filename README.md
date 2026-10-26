@@ -27,7 +27,7 @@ This assignment will require that you use your **Google Cloud Credits**.  We est
 ### Environment
 
   - **`.env.example`** - example of how you need to structure your `.env` file
-  - **`.env`** - file you will create to store your GEMINI_API_KEY
+  - **`.env`** - file you will create to store your GEMINI_API_KEY and your Persimmon API key (PERSIMMON_API_KEY)
   - **`requirements.txt`** - file specifying the library requirements that you need to install for the assignment
 
 ### Leaderboard
@@ -45,7 +45,7 @@ This assignment will require that you use your **Google Cloud Credits**.  We est
 
 2. Copy `.env.example` to `.env` and fill in the API keys.
 
-3. Open and run through `hw3.ipynb` following the instructions
+3. Open and run through `hw3.ipynb` following the instructions, using the `.venv` environment as the notebook kernel
 
 ## Submission Requirements
 
