@@ -13,7 +13,7 @@ In this assignment, you will build on recent work on building and evaluating hum
 
 You will also have an opportunity to recieve extra credit by competing on a leaderboard to build the best automatic evaluators.
 
-This assignment will require that you use your **Google Cloud Credits**.  We estimate that this assignment will take fewer than $20.  If you do not have enough credit remaining please contact the teaching team.
+This assignment uses the Inkling models through **Tinker** (for Coco and for the automatic evaluators) and **Persimmon** (for user simulation). <!-- TODO(staff): how students get Tinker credit and the estimated cost --> If you do not have enough credit remaining please contact the teaching team.
 
 
 ## File Structure
@@ -27,7 +27,7 @@ This assignment will require that you use your **Google Cloud Credits**.  We est
 ### Environment
 
   - **`.env.example`** - example of how you need to structure your `.env` file
-  - **`.env`** - file you will create to store your GEMINI_API_KEY and your Persimmon API key (PERSIMMON_API_KEY)
+  - **`.env`** - file you will create to store your Tinker API key (TINKER_API_KEY) and your Persimmon API key (PERSIMMON_API_KEY)
   - **`requirements.txt`** - file specifying the library requirements that you need to install for the assignment
 
 ### Leaderboard
