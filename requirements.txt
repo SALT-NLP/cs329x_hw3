@@ -5,3 +5,5 @@ litellm[caching]
 tqdm
 numpy
 scikit-learn
+humansand
+ipykernel

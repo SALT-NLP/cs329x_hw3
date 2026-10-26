@@ -1,3 +1,5 @@
+import os
+import re
 import pandas as pd
 from IPython.display import display
 from dotenv import load_dotenv
@@ -20,17 +22,47 @@ pd.set_option("display.max_columns", None)    # show all columns
 
 load_dotenv()
 
-def llm(prompt="", model="gemini/gemini-flash-latest"):
+TINKER_BASE_URL = "https://tinker.thinkingmachines.dev/services/tinker-prod/oai/api/v1"
+DEFAULT_MODEL = "tinker/thinkingmachines/Inkling-Small"
+
+
+def _completion_kwargs(model):
+    # Tinker serves Inkling through an OpenAI-compatible endpoint
+    if model.startswith("tinker/"):
+        return {
+            "model": "openai/" + model[len("tinker/"):],
+            "api_base": TINKER_BASE_URL,
+            "api_key": os.environ["TINKER_API_KEY"],
+            # The judge prompt already asks for written reasoning; hidden reasoning would add ~5x output tokens
+            "reasoning_effort": "none",
+        }
+    return {"model": model}
+
+def llm(prompt="", model=DEFAULT_MODEL):
     if type(prompt) == str:
         prompt = [{"role": "user", "content": prompt}]
 
     return litellm.completion(
-        model=model,
+        **_completion_kwargs(model),
         messages=prompt,
     ).choices[0].message.content
 
 
-def _llm_as_judge_prompt(prompt, model="gemini/gemini-flash-latest"):
+def _parse_score(response):
+    """The first number after the last <Score> tag, or None if there is no valid 1-5 score."""
+    if not response or "<Score>" not in response:
+        return None
+    # The model sometimes mentions the <Score> tag in its reasoning, so use the last one
+    tail = response.rsplit("<Score>", 1)[1].split("</Score>")[0]
+    if "Your final score" in tail:
+        return None  # the model copied the template line
+    match = re.search(r"\d+(?:\.\d+)?", tail)
+    if not match or not 1 <= float(match.group(0)) <= 5:
+        return None
+    return float(match.group(0))
+
+
+def _llm_as_judge_prompt(prompt, model=DEFAULT_MODEL):
     system_prompt = """You are a expert evaluator.  Given the criteria that you are evaluating for, you will score the given response from 1-5.
 
 First, reason over the given response and how it does or does not meet the criteria.  Then, give your final score.
@@ -48,23 +80,23 @@ Follow the following format:
 
     prompt = [{"role": "system", "content": system_prompt}] + prompt
     
-    try:
-        response = llm(prompt, model)
-
-        # Extract score from response (the next line after <Score>)
-        score_line = response.split("<Score>")[1].split("</Score>")[0].strip()
-        score = float(score_line)
-        
-        return score
-    except Exception as e:
+    for attempt in range(2):
+        try:
+            score = _parse_score(llm(prompt, model))
+        except Exception:
+            if attempt == 1:
+                raise
+            score = None
+        if score is not None:
+            return score
         prompt[-1]["content"] = prompt[-1]["content"] + "\n\nBe very careful and precise in formatting your response."
-        res2 = llm(prompt)
-        score_line = res2.split("<Score>")[1].split("</Score>")[0].strip()
-        score = float(score_line)
-        
-        return score
 
-def llm_as_judge(evaluation_criteria, input, output, model="gemini/gemini-flash-latest"):
+    # Rather than crash a long run on one malformed response, fall back to the middle of the scale
+    print("Warning: could not parse a score from the judge's response; using 3.")
+    return 3.0
+
+
+def llm_as_judge(evaluation_criteria, input, output, model=DEFAULT_MODEL):
     prompt = f"""<Evaluation Criteria>
     {evaluation_criteria}
     </Evaluation Criteria>
@@ -78,7 +110,7 @@ def llm_as_judge(evaluation_criteria, input, output, model="gemini/gemini-flash-
     return _llm_as_judge_prompt(prompt, model)
 
 
-def run_llm_as_judge_on_df(df, evaluation_criteria, model="gemini/gemini-flash-latest", num_threads=16):
+def run_llm_as_judge_on_df(df, evaluation_criteria, model=DEFAULT_MODEL, num_threads=16):
     scores = [None] * len(df)
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = {executor.submit(
@@ -94,7 +126,7 @@ def run_llm_as_judge_on_df(df, evaluation_criteria, model="gemini/gemini-flash-l
             scores[i] = future.result()
     return scores
 
-def run_regression_judge_on_df(df, criteria_list, coef, intercept, model="gemini/gemini-flash-latest", num_threads=16):
+def run_regression_judge_on_df(df, criteria_list, coef, intercept, model=DEFAULT_MODEL, num_threads=16):
     for criterion in criteria_list:
         scores = run_llm_as_judge_on_df(df, criterion, model, num_threads)
         df[criterion] = scores
@@ -129,7 +161,7 @@ def compute_pearson_correlation(df, scores: list[float]):
 
     return df["score"].corr(scores_series, method="pearson")
 
-def get_judge_confidence_interval(df, evaluation_criteria, model="gemini/gemini-flash-latest", num_threads=16, trials=5):
+def get_judge_confidence_interval(df, evaluation_criteria, model=DEFAULT_MODEL, num_threads=16, trials=2):
     disable_cache()
     scores = []
     for _ in range(trials):
@@ -142,7 +174,7 @@ def get_judge_confidence_interval(df, evaluation_criteria, model="gemini/gemini-
         pearson_correlations.append(compute_pearson_correlation(df, score_list))
     return np.array(pearson_correlations).mean(), np.array(pearson_correlations).std() / np.sqrt(trials)
 
-def get_regression_confidence_interval(df, criteria_list, coef, intercept, model="gemini/gemini-flash-latest", num_threads=16, trials=5):
+def get_regression_confidence_interval(df, criteria_list, coef, intercept, model=DEFAULT_MODEL, num_threads=16, trials=2):
     disable_cache()
     scores = []
     for _ in range(trials):
@@ -155,7 +187,7 @@ def get_regression_confidence_interval(df, criteria_list, coef, intercept, model
         pearson_correlations.append(compute_pearson_correlation(df, score_list))
     return np.array(pearson_correlations).mean(), np.array(pearson_correlations).std() / np.sqrt(trials)
 
-def get_evaluator_confidence_interval(df, evaluator:Callable[[str, str], float], num_threads=16, trials=5) -> tuple[float, float]:
+def get_evaluator_confidence_interval(df, evaluator:Callable[[str, str], float], num_threads=16, trials=2) -> tuple[float, float]:
     disable_cache()
     scores = []
     for _ in range(trials):
@@ -173,7 +205,7 @@ def evaluate_on_df_set(
     evaluator_constructor: Callable[[pd.DataFrame, str], Callable[[str, str], float]],
     human_criteria_list: Optional[list[str]] = None,
     num_threads: int = 16,
-    trials: int = 5,
+    trials: int = 2,
     parallel: bool = False,
 ):
     if human_criteria_list is None:
@@ -219,7 +251,7 @@ def init_dataset(path:str) -> Dataset:
         human_criteria = f.read().strip()
     return Dataset(train_df, dev_df, test_df, human_criteria)
 
-def evaluate_on_datasets(datasets:list[Dataset], evaluator_constructor:Callable[[pd.DataFrame, str], Callable[[str, str], float]], num_threads=16, trials=5, parallel=False):
+def evaluate_on_datasets(datasets:list[Dataset], evaluator_constructor:Callable[[pd.DataFrame, str], Callable[[str, str], float]], num_threads=16, trials=2, parallel=False):
     return evaluate_on_df_set(
         [dataset.train_df for dataset in datasets],
         [dataset.test_df for dataset in datasets],
