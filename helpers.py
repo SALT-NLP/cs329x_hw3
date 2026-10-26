@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 from IPython.display import display
 from dotenv import load_dotenv
@@ -47,6 +48,20 @@ def llm(prompt="", model=DEFAULT_MODEL):
     ).choices[0].message.content
 
 
+def _parse_score(response):
+    """The first number after the last <Score> tag, or None if there is no valid 1-5 score."""
+    if not response or "<Score>" not in response:
+        return None
+    # The model sometimes mentions the <Score> tag in its reasoning, so use the last one
+    tail = response.rsplit("<Score>", 1)[1].split("</Score>")[0]
+    if "Your final score" in tail:
+        return None  # the model copied the template line
+    match = re.search(r"\d+(?:\.\d+)?", tail)
+    if not match or not 1 <= float(match.group(0)) <= 5:
+        return None
+    return float(match.group(0))
+
+
 def _llm_as_judge_prompt(prompt, model=DEFAULT_MODEL):
     system_prompt = """You are a expert evaluator.  Given the criteria that you are evaluating for, you will score the given response from 1-5.
 
@@ -65,21 +80,21 @@ Follow the following format:
 
     prompt = [{"role": "system", "content": system_prompt}] + prompt
     
-    try:
-        response = llm(prompt, model)
-
-        # Extract score from response (the next line after <Score>)
-        score_line = response.split("<Score>")[1].split("</Score>")[0].strip()
-        score = float(score_line)
-        
-        return score
-    except Exception as e:
+    for attempt in range(2):
+        try:
+            score = _parse_score(llm(prompt, model))
+        except Exception:
+            if attempt == 1:
+                raise
+            score = None
+        if score is not None:
+            return score
         prompt[-1]["content"] = prompt[-1]["content"] + "\n\nBe very careful and precise in formatting your response."
-        res2 = llm(prompt)
-        score_line = res2.split("<Score>")[1].split("</Score>")[0].strip()
-        score = float(score_line)
-        
-        return score
+
+    # Rather than crash a long run on one malformed response, fall back to the middle of the scale
+    print("Warning: could not parse a score from the judge's response; using 3.")
+    return 3.0
+
 
 def llm_as_judge(evaluation_criteria, input, output, model=DEFAULT_MODEL):
     prompt = f"""<Evaluation Criteria>

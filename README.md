@@ -2,7 +2,7 @@
 
 **Due 11/11/26 11:59PM PT**
 
-75 points total + 10 points extra credit
+100 points total + extra credit (0.8 points on the final course grade)
 
 ## Overview
 
@@ -13,7 +13,7 @@ In this assignment, you will build on recent work on building and evaluating hum
 
 You will also have an opportunity to recieve extra credit by competing on a leaderboard to build the best automatic evaluators.
 
-This assignment uses the Inkling models through **Tinker** (for Coco and for the automatic evaluators) and **Persimmon** (for user simulation). <!-- TODO(staff): how students get Tinker credit and the estimated cost --> If you do not have enough credit remaining please contact the teaching team.
+This assignment uses the Inkling models through **Tinker** (for Coco and for the automatic evaluators) and **Persimmon** (for user simulation). Use the given credits wisely. If you do not have enough credit remaining please contact the teaching team although we cannot guarantee that we can provide additional credit due to our budge limit.
 
 
 ## File Structure

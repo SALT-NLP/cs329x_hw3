@@ -5,9 +5,9 @@
 **SUNet ID:** [Your ID]
 
 
-## Collecting Human-Agent Collaboration Traces (X points) <!-- TODO(staff): set points -->
+## Collecting Human-Agent Collaboration Traces (40 points)
 
-### Question 1.1 (X points)
+### Question 1.1 (10 points)
 
 Write down the two planning queries you worked on with Coco, the session ids you exported to `traces/coco_traces.json`, and a short description of how each collaboration went (2-3 sentences each).
 
@@ -31,7 +31,7 @@ Write down the two planning queries you worked on with Coco, the session ids you
 [HOW DID THE COLLABORATION GO?]
 ```
 
-### Question 1.2 (X points)
+### Question 1.2 (30 points)
 
 #### First Persona
 
@@ -69,7 +69,7 @@ What did you change between persona versions and why? In what ways does the simu
 [WRITE YOUR REFLECTION HERE]
 ```
 
-#### Simulated Collaboration (Step 5)
+#### Simulated Collaboration (Step 5, 15 points)
 
 Paste the output of the analysis cell (the comparison table and the realism summary).
 
@@ -93,7 +93,7 @@ How realistic was your simulated self, and where did it break down? Did Coco beh
 [WRITE YOUR REFLECTION HERE]
 ```
 
-## Building Automatic Evaluators to Approximate Human Judgement (50 points + 10 extra credit)
+## Building Automatic Evaluators to Approximate Human Judgement (60 points + extra credit)
 
 ### Question 2.1 (10 points)
 
@@ -150,7 +150,7 @@ And your Pearson Correlation on HelpSteer2
 
 Pearson correlation: X.XXX ± X.XXX
 
-### Question 2.4 (20 points + 10 extra credit for top 3 submissions)
+### Question 2.4 (20 points + extra credit of 0.8 points on the final course grade for the top 3 submissions)
 
 Paste your implementation of `generate_evaluator` here.
 
@@ -180,7 +180,7 @@ Finally please write up a 1-2 paragraph explanation of your approach.  Be sure t
 ```
 
 
-### Question 2.5 (X points)
+### Question 2.5 (10 points)
 
 Paste the criteria and weights from the criteria cell (the top 5 are enough) and the Pearson correlation on the test sessions.
 
