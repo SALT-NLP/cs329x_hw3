@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-zip -r submission.zip hw3.ipynb writeup.md submission.py traces/coco_traces.json .env
+zip -r submission.zip hw3.ipynb writeup.md submission.py traces/coco_traces.json traces/simulated_traces.json .env

@@ -22,7 +22,8 @@ This assignment uses the Inkling models through **Tinker** (for Coco and for the
 
   - **`hw3.ipynb`** - Main Jupyter notebook containing the complete assignment workflow. This is where you'll implement most of your code and run experiments.
   - **`writeup.md`** - Template for your written responses and analysis. You must fill this out with your answers.
-  - **`export_coco_traces.py`** - script to export your Coco chat sessions to `traces/coco_traces.json`.
+  - **`export_coco_traces.py`** - script to export your Coco chat sessions to `traces/coco_traces.json` (and your simulated sessions to `traces/simulated_traces.json`).
+  - **`simulate_turns.py`** - script that simulates your turns with Persimmon while you collaborate with Coco in Part 1.
 
 ### Environment
 
@@ -57,6 +58,7 @@ You must submit a **ZIP file** containing:
    - `hw3.ipynb` (with all cells executed and outputs visible)
    - `submission.py` for submitting to the leaderboard
    - `traces/coco_traces.json` with the collaboration traces you collected in Part 1
+   - `traces/simulated_traces.json` with your simulated collaboration traces and ratings from Part 1
    - `.env` so that we can run your submission on our private test set
 
 2. **Completed writeup**:

@@ -69,6 +69,30 @@ What did you change between persona versions and why? In what ways does the simu
 [WRITE YOUR REFLECTION HERE]
 ```
 
+#### Simulated Collaboration (Step 5)
+
+Paste the output of the analysis cell (the comparison table and the realism summary).
+
+```
+[PASTE THE OUTPUT HERE]
+```
+
+An excerpt (2-3 turns) where the simulated user is convincingly you, and one where it breaks down. Include the session ids.
+
+```
+[CONVINCING EXCERPT, SESSION ID]
+```
+
+```
+[BREAKDOWN EXCERPT, SESSION ID]
+```
+
+How realistic was your simulated self, and where did it break down? Did Coco behave differently with the simulated user than with you in Question 1.1? Would you trust simulated trajectories like these to evaluate a collaborative agent? (4-6 sentences)
+
+```
+[WRITE YOUR REFLECTION HERE]
+```
+
 ## Building Automatic Evaluators to Approximate Human Judgement (50 points + 10 extra credit)
 
 ### Question 2.1 (10 points)
@@ -153,4 +177,21 @@ Finally please write up a 1-2 paragraph explanation of your approach.  Be sure t
 
 ```
 [WRITE YOUR 1-2 PARAGRAPH EXPLANATION OF YOUR APPROACH HERE]
+```
+
+
+### Question 2.5 (X points)
+
+Paste the criteria and weights from the criteria cell (the top 5 are enough) and the Pearson correlation on the test sessions.
+
+```
+[CRITERIA AND WEIGHTS]
+```
+
+Pearson correlation on the test sessions: X.XXX
+
+Do the learned criteria match what mattered to you when you rated Coco? On which sessions does the evaluator disagree with you most, and why might that be? How does this compare to your results on HelpSteer2 and SimpEval in Question 2.4? Would you use this evaluator to compare two versions of Coco, and what would make it more trustworthy? (4-6 sentences)
+
+```
+[WRITE YOUR REFLECTION HERE]
 ```
