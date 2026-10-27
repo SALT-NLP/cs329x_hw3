@@ -1,11 +1,13 @@
 """Simulate human-agent collaboration with Coco, using Persimmon as the user.
 
-For each opener in simulation_config.json, you start a new Coco chat with the opener.
-After every Coco reply, this script asks Persimmon for your next turn, copies it to
-your clipboard, and asks you to rate how realistic it is. You paste it into Coco
-unchanged. If Coco asks a question card instead, Persimmon answers each question and
-you paste the answers into the card. At the end of each session you rate how well
-Coco collaborated.
+For each opener in simulation_config.json, this script starts a new Coco chat with the
+opener. After every Coco reply, it asks Persimmon for your next turn and sends it to
+Coco for you, then asks you to rate how realistic the turn is while Coco replies. If
+Coco asks a question card instead, Persimmon answers each question and the script
+submits the answers. At the end of each session you rate how well Coco collaborated.
+
+The script drives Coco through its local driver, so start Coco with it enabled:
+    cd <mini-collaborative-agent>/desktop && COCO_DRIVER=1 npm start
 
 Usage:
     python simulate_turns.py [--config simulation_config.json] [--log traces/simulation_log.jsonl]
@@ -16,26 +18,26 @@ The script can be stopped at any time (Ctrl+C) and resumes where it left off.
 import argparse
 import json
 import os
-import shutil
-import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from dotenv import load_dotenv
 from humansand import Persimmon
 
-from export_coco_traces import CARD_TOOL, card_answers, default_store_path, export_message, format_card, format_question
+from export_coco_traces import CARD_TOOL, default_store_path, export_message, format_card, format_question
 
 PERSIMMON_MODEL = "persimmon-v0.1"
 AGENT_NAME = "Coco"
 POLL_SECONDS = 1.0
 SLOW_REPLY_SECONDS = 120
 TAGS = ["too agreeable", "too verbose", "reveals too much", "off-topic", "breaks character", "repetitive"]
-
-
-def normalize(text):
-    return " ".join(text.split())
+DRIVER_HELP = (
+    "Start Coco with its local driver enabled, then run this script again:\n"
+    "  cd <mini-collaborative-agent>/desktop && COCO_DRIVER=1 npm start"
+)
 
 
 def read_conversations(store):
@@ -69,14 +71,6 @@ def open_card(conversation):
     return None
 
 
-def find_card(conversation, call_id):
-    for m in conversation.get("messages", []):
-        for a in m.get("activity") or []:
-            if (a.get("call") or {}).get("id") == call_id:
-                return a["call"]
-    return None
-
-
 def persimmon_turns(turns, user_name):
     """Turns as Persimmon sees them; question cards become one question and one answer at a time."""
     out, questions = [], []
@@ -99,14 +93,6 @@ def find_conversation(store, session_id):
     return next((c for c in read_conversations(store) if c["sessionId"] == session_id), None)
 
 
-def copy_to_clipboard(text):
-    for cmd, encoding in [(["pbcopy"], "utf-8"), (["clip"], "utf-16"), (["wl-copy"], "utf-8"), (["xclip", "-selection", "clipboard"], "utf-8")]:
-        if shutil.which(cmd[0]):
-            subprocess.run(cmd, input=text.encode(encoding), check=True)
-            return True
-    return False
-
-
 def ask_int(prompt, low, high):
     while True:
         answer = input(prompt).strip()
@@ -118,6 +104,43 @@ def ask_int(prompt, low, high):
 def show(label, text):
     bar = "-" * 80
     print(f"\n{bar}\n{label}\n{bar}\n{text}\n{bar}")
+
+
+class Driver:
+    """Client for Coco's local driver, which acts in the chat as the user would."""
+
+    def __init__(self, info_path):
+        try:
+            info = json.loads(Path(info_path).read_text())
+        except (FileNotFoundError, json.JSONDecodeError):
+            sys.exit(f"Could not find Coco's driver at {info_path}.\n{DRIVER_HELP}")
+        self.url, self.token = info["url"], info["token"]
+
+    def post(self, route, body):
+        request = urllib.request.Request(
+            self.url + route,
+            data=json.dumps(body).encode(),
+            headers={"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as error:
+            detail = json.load(error).get("error", error.reason)
+            raise RuntimeError(f"Coco's driver refused the request: {detail}") from None
+        except urllib.error.URLError:
+            sys.exit(f"Could not reach Coco. Is the app still running?\n{DRIVER_HELP}")
+
+    def start_session(self, opener):
+        return self.post("/sessions", {"opener": opener})["sessionId"]
+
+    def send_message(self, session_id, text):
+        self.post(f"/sessions/{session_id}/messages", {"text": text})
+
+    def answer_card(self, session_id, call_id, answers):
+        """Submits one answer per question, or skips the card when `answers` is None."""
+        self.post(f"/sessions/{session_id}/answers", {"toolCallId": call_id, "answers": answers})
 
 
 class SimulationLog:
@@ -141,34 +164,16 @@ class SimulationLog:
         score = next((r for r in self.records if r["type"] == "session_score" and r["index"] == index), None)
         return start, turns, score
 
-    def used_session_ids(self):
-        return {r["session_id"] for r in self.records if r["type"] == "session_start"}
-
 
 class Simulator:
-    def __init__(self, config, store, log):
+    def __init__(self, config, store, log, driver):
         self.config = config
         self.store = store
         self.log = log
+        self.driver = driver
         self.user_name = config["user_name"]
         self.max_user_turns = config["max_user_turns"]
         self.client = Persimmon(api_key=os.environ["PERSIMMON_API_KEY"])
-
-    def wait_for_new_chat(self, opener, started_at):
-        target = normalize(opener)
-        used = self.log.used_session_ids()
-        print("Waiting for you to start a new Coco chat with this opener...")
-        while True:
-            for c in sorted(read_conversations(self.store), key=lambda c: c.get("createdAt", 0), reverse=True):
-                texts = [t["text"] for t in user_turns(c)]
-                if (
-                    c["sessionId"] not in used
-                    and c.get("createdAt", 0) >= (started_at - 5) * 1000
-                    and texts
-                    and normalize(texts[0]) == target
-                ):
-                    return c["sessionId"]
-            time.sleep(POLL_SECONDS)
 
     def wait_for_coco(self, session_id, num_user_turns, ignored_cards=()):
         """Wait until Coco finishes its reply or asks a question card. Returns (conversation, card)."""
@@ -189,38 +194,12 @@ class Simulator:
                 print("  Still waiting. If Coco shows an error, click Retry.")
                 hinted = True
 
-    def wait_for_pasted_turn(self, session_id, num_user_turns, simulated):
-        print("Paste the simulated turn into Coco and send it.")
+    def wait_for_user_turn(self, session_id, num_user_turns):
+        """Wait until Coco has recorded the turn the driver just sent."""
         while True:
             c = find_conversation(self.store, session_id)
-            texts = [t["text"] for t in user_turns(c)] if c else []
-            if len(texts) >= num_user_turns:
-                matched = normalize(texts[num_user_turns - 1]) == normalize(simulated)
-                if not matched:
-                    print(
-                        "  Warning: the message Coco received doesn't match the simulated turn. "
-                        "Please paste simulated turns unchanged; this turn will be flagged as edited."
-                    )
-                return matched
-            time.sleep(POLL_SECONDS)
-
-    def wait_for_card_answers(self, session_id, call_id, simulated):
-        """Returns whether the submitted answers match, or None if the card was skipped."""
-        print("Click Submit answers in the card when all answers are pasted.")
-        while True:
-            call = find_card(find_conversation(self.store, session_id) or {}, call_id) or {}
-            if call.get("status") not in (None, "running"):
-                answers = card_answers(call)
-                if answers is None:
-                    print("  The card was skipped, so this turn is dropped. Please answer cards with the simulated answers.")
-                    return None
-                matched = [normalize(a["answer"]) for a in answers] == [normalize(a) for a in simulated]
-                if not matched:
-                    print(
-                        "  Warning: the answers Coco received don't match the simulated ones. "
-                        "Please paste simulated answers unchanged; this turn will be flagged as edited."
-                    )
-                return matched
+            if c and len(user_turns(c)) >= num_user_turns:
+                return
             time.sleep(POLL_SECONDS)
 
     def next_user_turn(self, history, setting):
@@ -259,64 +238,61 @@ class Simulator:
         tags = [TAGS[int(x) - 1] for x in picked.replace(" ", "").split(",") if x.isdigit() and 1 <= int(x) <= len(TAGS)]
         return realism, tags
 
-    def message_turn(self, index, session_id, turn_number, conversation, setting, logged):
-        simulated = logged["simulated_text"] if logged else self.simulate_turn(conversation, setting)
-        show(f"Simulated turn {turn_number}/{self.max_user_turns} (copied to clipboard)", simulated)
-        if not copy_to_clipboard(simulated):
-            print("(Could not access the clipboard; copy the turn above manually.)")
-        if logged:
-            print("This turn was already rated before the script stopped.")
-        else:
-            realism, tags = self.rate_turn()
-        matched = self.wait_for_pasted_turn(session_id, turn_number, simulated)
-        if not logged:
-            self.log.append(
-                {
-                    "type": "turn",
-                    "index": index,
-                    "session_id": session_id,
-                    "turn_number": turn_number,
-                    "simulated_text": simulated,
-                    "realism": realism,
-                    "tags": tags,
-                    "matched": matched,
-                }
-            )
+    def log_turn(self, index, session_id, turn_number, simulated, realism, tags, **extra):
+        self.log.append(
+            {
+                "type": "turn",
+                "index": index,
+                "session_id": session_id,
+                "turn_number": turn_number,
+                "simulated_text": simulated,
+                "realism": realism,
+                "tags": tags,
+                # The driver sends simulated turns unchanged
+                "matched": True,
+                **extra,
+            }
+        )
 
-    def card_turn(self, index, session_id, turn_number, conversation, card, setting, logged):
+    def message_turn(self, index, session_id, turn_number, conversation, setting):
+        simulated = self.simulate_turn(conversation, setting)
+        show(f"Simulated turn {turn_number}/{self.max_user_turns} (sent to Coco)", simulated)
+        self.driver.send_message(session_id, simulated)
+        # Rate while Coco works on its reply
+        realism, tags = self.rate_turn()
+        self.log_turn(index, session_id, turn_number, simulated, realism, tags)
+
+    def card_turn(self, index, session_id, turn_number, conversation, card, setting):
         questions = card["result"]["questions"]
-        answers = logged["answers"] if logged else self.simulate_card(conversation, card, setting)
+        answers = self.simulate_card(conversation, card, setting)
         print(f"\nCoco asked {len(questions)} question(s) in a question card. Simulated turn {turn_number}/{self.max_user_turns}:")
         for i, (question, answer) in enumerate(zip(questions, answers), 1):
             show(f"Question {i}: {question['question']}", f"Answer: {answer}")
-        if logged:
-            print("This turn was already rated before the script stopped.")
-        else:
+        self.driver.answer_card(session_id, card["id"], answers)
+        print("(Answers submitted to Coco.)")
+        realism, tags = self.rate_turn()
+        self.log_turn(
+            index,
+            session_id,
+            turn_number,
+            "\n".join(f"{q['question']} {a}" for q, a in zip(questions, answers)),
+            realism,
+            tags,
+            tool_call_id=card["id"],
+            answers=answers,
+        )
+
+    def rate_unlogged_turns(self, index, session_id, conversation, turns):
+        """Rate turns that were sent before the script stopped but never rated."""
+        for turn_number, turn in enumerate(user_turns(conversation)[1:], 2):
+            if turn_number in turns:
+                continue
+            show(f"Simulated turn {turn_number}/{self.max_user_turns} (sent before the script stopped)", turn["text"])
             realism, tags = self.rate_turn()
-        for i, (question, answer) in enumerate(zip(questions, answers), 1):
-            if not copy_to_clipboard(answer):
-                print(f"(Could not access the clipboard; copy answer {i} above manually.)")
-            input(
-                f"Answer {i} is copied. Paste it into the text box under \"{question['question']}\" "
-                "(don't click an option), then press Enter here. "
-            )
-        matched = self.wait_for_card_answers(session_id, card["id"], answers)
-        if matched is not None and not logged:
-            self.log.append(
-                {
-                    "type": "turn",
-                    "index": index,
-                    "session_id": session_id,
-                    "turn_number": turn_number,
-                    "tool_call_id": card["id"],
-                    "answers": answers,
-                    "simulated_text": "\n".join(f"{q['question']} {a}" for q, a in zip(questions, answers)),
-                    "realism": realism,
-                    "tags": tags,
-                    "matched": matched,
-                }
-            )
-        return matched
+            extra = {}
+            if turn.get("question_card_answers"):
+                extra = {"answers": [a["answer"] for a in turn["question_card_answers"]]}
+            self.log_turn(index, session_id, turn_number, turn["text"], realism, tags, **extra)
 
     def run_session(self, index, session):
         opener, setting = session["opener"], session["setting"]
@@ -329,34 +305,33 @@ class Simulator:
             session_id = start["session_id"]
             print(f"Resuming Coco chat {session_id[:8]}.")
         else:
-            show("Opener (copied to clipboard)", opener)
-            if not copy_to_clipboard(opener):
-                print("(Could not access the clipboard; copy the opener above manually.)")
-            print("Start a new session in Coco, paste the opener, and send it.")
-            session_id = self.wait_for_new_chat(opener, time.time())
+            show("Next opener", opener)
+            input("Press Enter to start a new Coco chat with this opener (Ctrl+C to stop for now). ")
+            session_id = self.driver.start_session(opener)
+            print("(Opener sent to Coco.)")
             self.log.append({"type": "session_start", "index": index, "session_id": session_id, "opener": opener})
+            self.wait_for_user_turn(session_id, 1)
 
         conversation = find_conversation(self.store, session_id)
-        num_user_turns = max(1, len(user_turns(conversation)) if conversation else 1)
+        if not conversation:
+            sys.exit(f"Coco chat {session_id[:8]} is missing from Coco's history.")
+        self.rate_unlogged_turns(index, session_id, conversation, turns)
+        num_user_turns = max(1, len(user_turns(conversation)))
         skipped_cards = set()
         while True:
             conversation, card = self.wait_for_coco(session_id, num_user_turns, skipped_cards)
             if num_user_turns >= self.max_user_turns:
                 if card:
-                    print("Coco asked a question card after the last turn of this session. Click Skip so Coco finishes its reply.")
+                    print("Coco asked a question card after the last turn of this session; skipping it.")
+                    self.driver.answer_card(session_id, card["id"], None)
                     skipped_cards.add(card["id"])
                     continue
                 break
             turn_number = num_user_turns + 1
-            logged = turns.get(turn_number)
-            if logged and (logged.get("tool_call_id") != (card or {}).get("id")):
-                logged = None  # Coco's reply changed since this turn was logged (e.g. after Retry)
             if card:
-                matched = self.card_turn(index, session_id, turn_number, conversation, card, setting, logged)
-                if matched is None:
-                    continue
+                self.card_turn(index, session_id, turn_number, conversation, card, setting)
             else:
-                self.message_turn(index, session_id, turn_number, conversation, setting, logged)
+                self.message_turn(index, session_id, turn_number, conversation, setting)
             num_user_turns = turn_number
 
         print("\nSession complete. Now rate Coco, thinking about the whole session.")
@@ -376,6 +351,9 @@ def main():
     parser.add_argument("--config", default="simulation_config.json")
     parser.add_argument("--log", default="traces/simulation_log.jsonl")
     parser.add_argument("--store", type=Path, default=default_store_path(), help="path to Coco's chat-conversations.json")
+    parser.add_argument(
+        "--driver", type=Path, default=None, help="path to Coco's driver.json (default: next to --store)"
+    )
     args = parser.parse_args()
 
     load_dotenv()
@@ -383,11 +361,14 @@ def main():
         sys.exit("PERSIMMON_API_KEY is not set. Add it to your .env file.")
     with open(args.config) as f:
         config = json.load(f)
+    driver = Driver(args.driver or args.store.parent / "driver.json")
 
     try:
-        Simulator(config, args.store, SimulationLog(args.log)).run()
+        Simulator(config, args.store, SimulationLog(args.log), driver).run()
     except KeyboardInterrupt:
         print("\nStopped. Run the script again to resume where you left off.")
+    except RuntimeError as error:
+        sys.exit(f"{error}\nFix the problem in Coco (e.g. click Retry), then run the script again to resume.")
 
 
 if __name__ == "__main__":
